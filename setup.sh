@@ -8,7 +8,8 @@
 ###############################################################################
 # Bash script that downloads and does setup for a Dart SDK.                   #
 # Takes three params; first listed is the default:                            #
-# $1: Dart SDK version/channel: stable|beta|dev|main|<version_string>         #
+# $1: Dart SDK version/channel:                                               #
+#          stable|beta|dev|dev_unsigned|main|<version_string>                 #
 # $2: Dart channel (DEPRECATED): stable|beta|dev                              #
 # $3: OS: Linux|Windows|macOS                                                 #
 # $4: ARCH: x64|ia32                                                          #
@@ -17,15 +18,31 @@
 # Parse SDK and version args.
 SDK="${1:-stable}"
 VERSION=
-if [[ $SDK == stable || $SDK == beta || $SDK == dev || $SDK == main ]]
+BINARIES_FOLDER=release
+if [[ $SDK == stable || $SDK == beta || $SDK == dev ]]
 then
   CHANNEL=$SDK
+  VERSION=latest
+elif [[ $SDK == main ]]
+then
+  CHANNEL=$SDK
+  BINARIES_FOLDER=raw
+  VERSION=latest
+elif [[ $SDK == dev_unsigned ]]
+then
+  CHANNEL=dev
+  BINARIES_FOLDER=raw
   VERSION=latest
 else
   CHANNEL=stable
   VERSION=$SDK
   # Derive the channel from the version string
-  if [[ "$SDK" == *"dev"* ]]
+  if [[ "$SDK" == *"dev_unsigned"* ]]
+  then
+    CHANNEL=dev
+    BINARIES_FOLDER=raw
+    VERSION="${VERSION/_unsigned}"
+  elif [[ "$SDK" == *"dev"* ]]
   then
     CHANNEL=dev
   elif [[ "$SDK" == *"beta"* ]]
@@ -47,12 +64,8 @@ echo "Installing Dart SDK version \"${VERSION}\" from the ${CHANNEL} channel on 
 # https://dart.dev/tools/sdk/archive#download-urls
 PREFIX="https://storage.googleapis.com/dart-archive/channels"
 BUILD="sdk/dartsdk-${OS}-${ARCH}-release.zip"
-if [[ $SDK == main ]]
-then
-  URL="${PREFIX}/be/raw/latest/${BUILD}"
-else
-  URL="${PREFIX}/${CHANNEL}/release/${VERSION}/${BUILD}"
-fi
+CHANNEL_FOLDER="${CHANNEL/main/be}"
+URL="${PREFIX}/${CHANNEL_FOLDER}/${BINARIES_FOLDER}/${VERSION}/${BUILD}"
 echo "Downloading ${URL}..."
 
 # Download installation zip.
